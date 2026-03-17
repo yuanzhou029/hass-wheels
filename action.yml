@@ -64,6 +64,9 @@ inputs:
   local-wheels-repo-path:
     description: "Path to a local folder to copy the repository to (wheels-host and wheels-user must be empty)"
     default: ""
+  wheels-registry:
+    description: "Custom registry for wheels images (defaults to ghcr.io/home-assistant)"
+    default: ""
 
 runs:
   using: "composite"
@@ -94,7 +97,15 @@ runs:
     - shell: bash
       id: pull
       run: |
-        name="ghcr.io/home-assistant/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:${{ steps.version.outputs.version }}"
+        # Determine the registry to use (allow override for custom registries)
+        if [ -n "${{ inputs.wheels-registry }}" ]; then
+          registry="${{ inputs.wheels-registry }}"
+        else
+          registry="ghcr.io/home-assistant"
+        fi
+        
+        # Construct image name
+        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:${{ steps.version.outputs.version }}"
         docker pull "$name"
         echo "name=$name" >> $GITHUB_OUTPUT
 

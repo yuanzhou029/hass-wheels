@@ -1,0 +1,55 @@
+name: Example Usage of Hass Wheels
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-example:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["cp313", "cp314"]
+        architecture: ["amd64"]  # For testing on standard runners
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6.0.2
+
+      - name: Create test requirements
+        run: |
+          echo "requests==2.32.5" > test_requirements.txt
+          echo "Brotli==1.2.0" >> test_requirements.txt
+
+      - name: Build wheels with custom tool
+        uses: yuanzhou029/hass-wheels@main  # 使用您创建的工具
+        with:
+          abi: ${{ matrix.python-version }}
+          tag: musllinux_1_2
+          arch: ${{ matrix.architecture }}
+          # 构建结果保存在本地路径
+          local-wheels-repo-path: "/tmp/output"
+          wheels-host: ""
+          wheels-user: ""
+          # 包含必要的构建依赖
+          apk: "libffi-dev;openssl-dev"
+          requirements: "test_requirements.txt"
+
+      - name: Show built wheels
+        run: |
+          if [ -d "/tmp/output" ]; then
+            echo "Built wheels:"
+            find /tmp/output -name "*.whl" -exec ls -la {} \;
+          else
+            echo "No wheels found in output directory"
+          fi
+
+      - name: Upload wheels
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: built-wheels-${{ matrix.architecture }}-${{ matrix.python-version }}
+          path: /tmp/output/**
+          retention-days: 30

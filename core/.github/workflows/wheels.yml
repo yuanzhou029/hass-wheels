@@ -1,0 +1,78 @@
+name: Build Core Wheels
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-core-wheels:
+    name: Build wheels for core packages
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.13", "3.14"]
+        target-platform: ["musllinux_1_2"]
+        architecture: ["amd64"]
+
+    steps:
+      - name: Check out core repository
+        uses: actions/checkout@v6.0.2
+
+      - name: Determine Python ABI
+        id: python_abi
+        run: |
+          if [[ "${{ matrix.python-version }}" == "3.13" ]]; then
+            echo "abi=cp313" >> $GITHUB_OUTPUT
+          elif [[ "${{ matrix.python-version }}" == "3.14" ]]; then
+            echo "abi=cp314" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build wheels for core packages
+        uses: your-username/hass-wheels@main  # 替换为您的实际仓库
+        # 如果您已将此工具部署到自己的仓库，则更新为实际的仓库名称
+        with:
+          abi: ${{ steps.python_abi.outputs.abi }}
+          tag: ${{ matrix.target-platform }}
+          arch: ${{ matrix.architecture }}
+          # 构建结果保存在本地，不上传
+          local-wheels-repo-path: "/tmp/core-wheels-output"
+          wheels-host: ""
+          wheels-user: ""
+          # 指定核心依赖文件
+          requirements: "requirements.txt"  # 您需要根据实际情况指定正确的依赖文件
+          # 安装构建所需的开发库
+          apk: "postgresql-dev;libffi-dev;openssl-dev"
+
+      - name: Upload core wheels as artifacts
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: core-wheels-${{ matrix.architecture }}-${{ steps.python_abi.outputs.abi }}
+          path: /tmp/core-wheels-output/**
+          retention-days: 30
+
+  # 可选：合并所有构建产物
+  collect-core-wheels:
+    name: Collect all core wheels
+    runs-on: ubuntu-latest
+    needs: build-core-wheels
+    steps:
+      - name: Download all core wheel artifacts
+        uses: actions/download-artifact@v4.1.7
+        with:
+          path: ./all_core_wheels
+
+      - name: Combine all wheels
+        run: |
+          mkdir -p ./combined_core_wheels
+          find ./all_core_wheels -name "*.whl" -exec cp {} ./combined_core_wheels/ \;
+
+      - name: Upload combined core wheels
+        uses: actions/upload-artifact@v4.3.6
+        with:
+          name: all-core-wheels
+          path: ./combined_core_wheels/**
+          retention-days: 30
