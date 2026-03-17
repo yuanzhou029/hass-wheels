@@ -1,0 +1,33 @@
+name: Simple Wheels Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  build-wheels-simple:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Build wheels locally (test packages)
+        uses: ./
+        with:
+          abi: cp313
+          tag: musllinux_1_2
+          arch: amd64
+          # 不需要WHEELS_KEY
+          local-wheels-repo-path: "/tmp/output"
+          wheels-host: ""
+          wheels-user: ""
+          # 使用项目中已有的测试依赖文件
+          requirements: "requirements_wheels_test.txt"
+
+      - name: Upload wheels as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-wheels-simple
+          path: /tmp/output/**
+          retention-days: 30

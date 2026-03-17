@@ -1,0 +1,71 @@
+name: Build Wheels Locally
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-wheels:
+    name: Build wheels for ${{ matrix.arch }}-${{ matrix.abi }}-${{ matrix.tag }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: ["cp313", "cp314"]  # Python版本
+        tag: ["musllinux_1_2"]   # 目标平台
+        arch: ["aarch64", "amd64"]  # 架构
+        
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Write env-file (if needed for your builds)
+        shell: bash
+        run: |
+          (
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+          ) > .env_file
+
+      - name: Build wheels locally (no upload)
+        uses: ./
+        with:
+          abi: ${{ matrix.abi }}
+          tag: ${{ matrix.tag }}
+          arch: ${{ matrix.arch }}
+          # 关键部分：使用 local-wheels-repo-path 而不是SSH密钥
+          local-wheels-repo-path: "/tmp/wheels_output"
+          # 清空wheels-host和wheels-user以禁用上传
+          wheels-host: ""
+          wheels-user: ""
+          
+      - name: Upload built wheels as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: wheels-${{ matrix.arch }}-${{ matrix.abi }}
+          path: /tmp/wheels_output/**
+          retention-days: 30
+
+  # 可选：合并所有架构的wheels到一个artifact中
+  collect-wheels:
+    name: Collect all wheels
+    runs-on: ubuntu-latest
+    needs: build-wheels
+    steps:
+      - name: Download all wheel artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./all_wheels
+
+      - name: Combine all wheels
+        run: |
+          mkdir -p ./combined_wheels
+          find ./all_wheels -name "*.whl" -exec cp {} ./combined_wheels/ \;
+
+      - name: Upload combined wheels
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-built-wheels
+          path: ./combined_wheels/**
+          retention-days: 30
