@@ -1,0 +1,54 @@
+# Use Alpine Linux as base for wheel building
+FROM alpine:3.22
+
+ARG \
+    BUILD_ARCH=amd64 \
+    CPYTHON_ABI=cp314 \
+    PIP_EXTRA_INDEX_URL=https://wheels.home-assistant.io/musllinux-index/
+
+SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+
+# Install build dependencies
+RUN apk upgrade --no-cache && \
+    apk add --no-cache \
+        rsync \
+        openssh-client \
+        patchelf \
+        build-base \
+        cmake \
+        git \
+        linux-headers \
+        autoconf \
+        automake \
+        cargo \
+        libffi \
+        python3-dev \
+        musl-dev \
+        openssl-dev \
+        libffi-dev
+
+# Install Python and pip
+RUN apk add --no-cache --virtual .python-deps python3 py3-pip && \
+    ln -sf python3 /usr/bin/python && \
+    ln -sf pip3 /usr/bin/pip
+
+# Copy source code
+COPY . /usr/src/builder/
+WORKDIR /usr/src/builder
+
+# Install Python requirements
+RUN pip install --no-cache-dir -r requirements.txt -r requirements_${CPYTHON_ABI}.txt ./
+
+# Set build environment information
+ENV \
+    ARCH=${BUILD_ARCH} \
+    ABI=${CPYTHON_ABI}
+
+# Runtime
+WORKDIR /data
+
+# Copy run script
+COPY rootfs/bin/run-builder.sh /usr/local/bin/run-builder.sh
+RUN chmod +x /usr/local/bin/run-builder.sh
+
+ENTRYPOINT [ "/usr/local/bin/run-builder.sh" ]

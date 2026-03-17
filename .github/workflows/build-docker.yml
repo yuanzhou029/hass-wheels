@@ -72,7 +72,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            BUILD_FROM=ghcr.io/home-assistant/musllinux-1.2-base:latest
+            BUILD_FROM=ghcr.io/home-assistant/musllinux-1.2-base:2025.12.0
             BUILD_ARCH=${{ matrix.arch }}
             CPYTHON_ABI=cp314
-          file: Dockerfile
+          file: Dockerfile.alpine

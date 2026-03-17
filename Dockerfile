@@ -1,4 +1,4 @@
-ARG BUILD_FROM
+ARG BUILD_FROM=ghcr.io/home-assistant/musllinux-1.2-base:2025.11.0
 FROM ${BUILD_FROM}
 
 ARG \
