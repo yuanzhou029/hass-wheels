@@ -1,0 +1,151 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install requirements
+        run: python3 -m pip install -r requirements.txt -r requirements_tests.txt
+
+      - name: Run pytest
+        run: pytest
+
+  prek:
+    name: Prek
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install requirements
+        run: python3 -m pip install -r requirements.txt -r requirements_tests.txt
+
+      - name: Run prek
+        uses: j178/prek-action@0bb87d7f00b0c99306c8bcb8b8beba1eb581c037 # v1.1.1
+        env:
+          PREK_SKIP: no-commit-to-branch
+
+  hadolint:
+    name: Hadolint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Lint Dockerfile
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: "Dockerfile"
+          failure-threshold: warning
+
+  test:
+    name: Test wheels ${{ matrix.arch }}-${{ matrix.abi }}-${{ matrix.tag }}
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        abi: ["cp313", "cp314"]
+        tag: ["musllinux_1_2"]
+        arch: ["aarch64", "amd64"]
+        include:
+          - runs-on: ubuntu-latest
+          - arch: aarch64
+            runs-on: ubuntu-24.04-arm
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Write env-file
+        shell: bash
+        run: |
+          (
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+          ) > .env_file
+
+      - name: Build wheels
+        uses: ./
+        with:
+          abi: ${{ matrix.abi }}
+          tag: ${{ matrix.tag }}
+          arch: ${{ matrix.arch }}
+          apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
+          skip-binary: "orjson"
+          env-file: True
+          test: True
+          requirements: "requirements_wheels_test.txt"
+
+  test_local_repo:
+    name: Test publishing to a local repository
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v6.0.2
+
+      - name: Write env-file
+        shell: bash
+        run: |
+          (
+            echo "CARGO_NET_GIT_FETCH_WITH_CLI=true"
+          ) > .env_file
+
+      - name: Build wheels
+        uses: ./
+        with:
+          abi: cp314
+          tag: musllinux_1_2
+          arch: amd64
+          apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
+          skip-binary: "orjson"
+          env-file: True
+          requirements: "requirements_wheels_test.txt"
+          local-wheels-repo-path: "/tmp/local_wheels"
+          wheels-user: ""
+          wheels-host: ""
+
+      - name: Check for local wheels
+        shell: bash
+        run: |
+          missing=0
+          while IFS= read -r line || [[ -n "$line" ]]; do
+            # Skip empty lines
+            [[ -z "$line" ]] && continue
+            # Extract package name (before ==)
+            pkg_name="${line%%==*}"
+            # Normalize: replace - with _, convert to lowercase
+            normalized=$(echo "$pkg_name" | tr '[:upper:]-' '[:lower:]_')
+            # Check if wheel exists (case-insensitive glob)
+            if ! compgen -G "/tmp/local_wheels/musllinux/${normalized}-"*.whl > /dev/null; then
+              echo "::error::Missing wheel for package: $pkg_name"
+              missing=1
+            else
+              echo "Found wheel for package: $pkg_name"
+            fi
+          done < requirements_wheels_test.txt
+          exit $missing

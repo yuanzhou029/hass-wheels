@@ -1,0 +1,41 @@
+[MASTER]
+reports=no
+
+disable=
+  abstract-method,
+  cyclic-import,
+  duplicate-code,
+  global-statement,
+  locally-disabled,
+  not-context-manager,
+  too-few-public-methods,
+  too-many-arguments,
+  too-many-branches,
+  too-many-instance-attributes,
+  too-many-lines,
+  too-many-locals,
+  too-many-positional-arguments,
+  too-many-public-methods,
+  too-many-return-statements,
+  too-many-statements,
+  unused-argument,
+  line-too-long,
+  too-few-public-methods,
+  not-async-context-manager,
+  too-many-locals,
+  too-many-branches,
+  no-else-return
+
+[MAIN]
+load-plugins =
+    pylint_per_file_ignores
+
+[EXCEPTIONS]
+overgeneral-exceptions=builtins.Exception
+
+[TYPECHECK]
+ignored-modules = distutils
+
+[MESSAGES CONTROL]
+per-file-ignores =
+  tests/*:C0116

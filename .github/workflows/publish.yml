@@ -1,0 +1,73 @@
+name: "Publish"
+
+on:
+  release:
+    types: [published]
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  publish:
+    name: Publish builder
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: False
+      matrix:
+        abi: ["cp313", "cp314"]
+        tag: ["musllinux_1_2"]
+        arch: ["aarch64", "amd64"]
+        include:
+          - abi: cp313
+            base: 3.13-alpine3.22
+          - abi: cp314
+            base: 3.14-alpine3.22
+
+          - arch: aarch64
+            platform: linux/arm64
+            runs-on: ubuntu-24.04-arm
+          - arch: amd64
+            platform: linux/amd64
+            runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repository
+        uses: actions/checkout@0c366fd6a839edf440554fa01a7085ccba70ac98 # v6.0.1
+
+      - shell: bash
+        id: info
+        run: |
+          name="ghcr.io/home-assistant/wheels/${{ matrix.arch }}/${{ matrix.tag }}/${{ matrix.abi }}"
+
+          version=$(echo "${{ github.ref }}" | awk -F"/" '{print $NF}' )
+          if [ "${version}" = "master" ]; then
+            version=dev
+          fi
+
+          echo "name=$name" >> $GITHUB_OUTPUT
+          echo "version=$version" >> $GITHUB_OUTPUT
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@b45d80f862d83dbcd57f89517bcf500b2ab88fb2 # v4.0.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Docker image
+        uses: docker/build-push-action@d08e5c354a6adb9ed34480a06d141179aa583294 # v7.0.0
+        with:
+          context: . # So action will not pull the repository again
+          push: ${{ github.event_name != 'pull_request' }}
+          pull: true
+          platforms: ${{ matrix.platform }}
+          cache-from: type=registry,ref=${{ steps.info.outputs.name }}:dev
+          build-args: |
+            BUILD_FROM=ghcr.io/home-assistant/${{ matrix.arch }}-base-python:${{ matrix.base }}
+            BUILD_ARCH=${{ matrix.arch }}
+            CPYTHON_ABI=${{ matrix.abi }}
+          tags: |
+            ${{ steps.info.outputs.name }}:${{ steps.info.outputs.version }}
+            ${{ steps.info.outputs.name }}:${{ github.sha }}

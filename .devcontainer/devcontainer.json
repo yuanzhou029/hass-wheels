@@ -1,0 +1,35 @@
+// See https://aka.ms/vscode-remote/devcontainer.json for format details.
+{
+  "name": "Wheels",
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "postStartCommand": "pip install -r requirements.txt -r requirements_tests.txt && prek install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "charliermarsh.ruff",
+        "esbenp.prettier-vscode",
+        "ms-python.python",
+        "ms-python.vscode-pylance",
+        "visualstudioexptteam.vscodeintellicode"
+      ],
+      "settings": {
+        "[python]": {
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        "editor.formatOnPaste": false,
+        "editor.formatOnSave": true,
+        "editor.formatOnType": true,
+        "files.trimTrailingWhitespace": true,
+        "python.pythonPath": "/usr/local/bin/python3",
+        "python.linting.pylintEnabled": true,
+        "python.linting.enabled": true,
+        "python.testing.pytestEnabled": true,
+        "python.testing.unittestEnabled": false,
+        "python.linting.mypyPath": "/usr/local/bin/mypy",
+        "python.linting.pylintPath": "/usr/local/bin/pylint"
+      }
+    }
+  },
+  "remoteUser": "vscode",
+  "runArgs": ["-e", "GIT_EDITOR=code --wait"]
+}

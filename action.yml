@@ -1,0 +1,210 @@
+name: "Home Assistant wheels builder"
+description: "Builds and publishes python wheels"
+inputs:
+  tag:
+    description: "The musllinux tag for the builder that should be used"
+    required: true
+  abi:
+    description: "CPython ABI that is used"
+    required: true
+  arch:
+    description: "Build architecture"
+    required: true
+  apk:
+    description: "apk packages that should be installed"
+    default: ""
+  pip:
+    description: "pip packages that should be installed"
+    default: ""
+  path:
+    description: "The path to be used for the builder"
+    default: ""
+  prebuild-dir:
+    description: "The directory for prebuild"
+    default: ""
+  env-file:
+    description: "Set to true if the builder should use a env file"
+    default: false
+  requirements:
+    description: "The requirements file"
+    default: ""
+  requirements-diff:
+    description: "The requirements diff file"
+    default: ""
+  constraints:
+    description: "The constraints file"
+    default: ""
+  local:
+    description: "Set to true if local"
+    default: false
+  test:
+    description: "Set to true if not uploading wheels"
+    default: false
+  single:
+    description: "Set to true if should build each wheel as a single prosess"
+    default: false
+  name:
+    description: "Job name"
+    default: "Wheels"
+  skip-binary:
+    description: "Skip binaries"
+    default: ""
+  wheels-key:
+    description: "SSH keys for the wheels host"
+    required: false
+  wheels-host:
+    description: "wheels host URL"
+    default: "wheels.hass.io"
+  wheels-user:
+    description: "User for wheels host"
+    default: "wheels"
+  wheels-index:
+    description: "The wheels index URL"
+    default: "https://wheels.home-assistant.io"
+  local-wheels-repo-path:
+    description: "Path to a local folder to copy the repository to (wheels-host and wheels-user must be empty)"
+    default: ""
+
+runs:
+  using: "composite"
+  steps:
+    - shell: bash
+      id: version
+      run: |
+        input="${GITHUB_ACTION_PATH##*/}"
+        if [[ "${input}" == "master" ]] || [[ -z "${input}" ]]; then
+          input="dev"
+        fi
+        echo "version=${input}" >> $GITHUB_OUTPUT
+
+    - shell: bash
+      run: |
+        if [[ "${{ inputs.test }}" =~ false|False ]] && [ -z "${{ inputs.local-wheels-repo-path }}" ]; then
+          # Write Key
+          mkdir -p .ssh
+          echo -e "-----BEGIN RSA PRIVATE KEY-----\n${{ inputs.wheels-key }}\n-----END RSA PRIVATE KEY-----" >> .ssh/id_rsa
+          chmod 600 .ssh/id_rsa
+
+          # Validate & update known_hosts
+          ssh-keygen -y -e -f .ssh/id_rsa
+          ssh-keyscan -H ${{ inputs.wheels-host }} >> .ssh/known_hosts
+          chmod 600 .ssh/*
+        fi
+
+    - shell: bash
+      id: pull
+      run: |
+        name="ghcr.io/home-assistant/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:${{ steps.version.outputs.version }}"
+        docker pull "$name"
+        echo "name=$name" >> $GITHUB_OUTPUT
+
+    - shell: bash
+      id: options
+      run: |
+        declare -a build
+        declare -a docker
+
+        # Data Path
+        if [ -n "${{ inputs.path }}" ]; then
+          data_path="${{ github.workspace }}/${{ inputs.path }}"
+        else
+          data_path="${{ github.workspace }}"
+        fi
+
+        # Environment
+        if [[ "${{ inputs.env-file  }}" =~ true|True ]] && [ -f .env_file ]; then
+          docker+=("--env-file .env_file")
+        fi
+        if [ -f "${{ inputs.requirements }}" ]; then
+          build+=("--requirement ${{ inputs.requirements }}")
+        fi
+        if [ -f "${{ inputs.requirements-diff }}" ]; then
+          build+=("--requirement-diff ${{ inputs.requirements-diff }}")
+        fi
+        if [ -f "${{ inputs.constraints }}" ]; then
+          build+=("--constraint ${{ inputs.constraints }}")
+        fi
+        if [ -d "${{ inputs.prebuild-dir }}" ]; then
+          build+=("--prebuild-dir ${{ github.workspace }}/${{ inputs.prebuild-dir }}")
+        fi
+        if [[ "${{ inputs.single }}" =~ true|True ]]; then
+          build+=("--single")
+        fi
+        if [[ "${{ inputs.local }}" =~ true|True ]]; then
+          build+=("--local")
+        fi
+        if [[ "${{ inputs.test }}" =~ true|True ]]; then
+          build+=("--test")
+        fi
+        if [ -n "${{ inputs.skip-binary }}" ]; then
+          build+=("--skip-binary \"${{ inputs.skip-binary }}\"")
+        fi
+        if [ -n "${{ inputs.apk }}" ]; then
+          build+=("--apk \"${{ inputs.apk }}\"")
+        fi
+        if [ -n "${{ inputs.pip }}" ]; then
+          build+=("--pip \"${{ inputs.pip }}\"")
+        fi
+        if [ -n "${{ inputs.local-wheels-repo-path }}" ]; then
+          if [ -n "${{ inputs.wheels-user }}" ] || [ -n "${{ inputs.wheels-host }}" ]; then
+            echo "::error::Inputs wheels-user and wheels-host must be empty when local-wheels-repo-path is used"
+            exit 1
+          fi
+          build+=("--remote \"/data/output\"")
+        else
+          build+=("--remote \"${{ inputs.wheels-user }}@${{ inputs.wheels-host }}:/opt/wheels\"")
+        fi
+
+
+        echo "build=${build[@]}" >> $GITHUB_OUTPUT
+        echo "docker=${docker[@]}" >> $GITHUB_OUTPUT
+        echo "path=$data_path" >> $GITHUB_OUTPUT
+
+    - shell: bash
+      id: host-info
+      run: |
+        echo "host-machine=$(uname -m)" >> $GITHUB_OUTPUT
+
+    - shell: bash
+      run: |
+        echo "Create container"
+        docker create --name "${{ inputs.name }}" -t \
+          --workdir /data \
+          ${{ steps.options.outputs.docker }} \
+          ${{ steps.pull.outputs.name }} \
+          --index "${{ inputs.wheels-index }}" \
+          --upload rsync \
+          ${{ steps.options.outputs.build }}
+
+    - shell: bash
+      run: |
+        echo "Copy repository and SSH files to the container"
+        docker cp "${{ steps.options.outputs.path }}/." "${{ inputs.name }}:/data"
+        if [[ "${{ inputs.test }}" =~ false|False ]] && [ -z "${{ inputs.local-wheels-repo-path }}" ]; then
+          docker cp -a .ssh/ "${{ inputs.name }}:/root/.ssh"
+        fi
+
+    - shell: bash
+      id: build
+      run: |
+        set +e
+        for i in {1..3}; do
+          echo "$i attempt on starting the container"
+          docker start -a "${{ inputs.name }}"
+          return_val=$?
+          if [ ${return_val} -ne 0 ] && [ ${return_val} -ne 109 ] && [ ${return_val} -ne 80 ]; then
+            continue
+          fi
+          break
+        done
+        echo "return_val=$return_val" >> $GITHUB_OUTPUT
+
+    - shell: bash
+      if: ${{ inputs.local-wheels-repo-path }}
+      run: |
+        docker cp "${{ inputs.name }}:/data/output/." "${{ inputs.local-wheels-repo-path }}"
+
+    - shell: bash
+      run: |
+        docker rm -f "${{ inputs.name }}"
+        exit ${{ steps.build.outputs.return_val }}
