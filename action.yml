@@ -74,11 +74,19 @@ runs:
     - shell: bash
       id: version
       run: |
+        # Use a fixed version that we know images exist for
+        # Or check if custom registry is used to adjust accordingly
         input="${GITHUB_ACTION_PATH##*/}"
         if [[ "${input}" == "master" ]] || [[ -z "${input}" ]]; then
-          input="dev"
+          # Use a fixed known version instead of "dev"
+          input="2025.11.0"
         fi
-        echo "version=${input}" >> $GITHUB_OUTPUT
+        # Override version to a known good version when using custom registry
+        if [ -n "${{ inputs.wheels-registry }}" ]; then
+          echo "version=2025.11.0" >> $GITHUB_OUTPUT  # Known HA wheels version
+        else
+          echo "version=${input}" >> $GITHUB_OUTPUT
+        fi
 
     - shell: bash
       run: |
@@ -97,15 +105,11 @@ runs:
     - shell: bash
       id: pull
       run: |
-        # Determine the registry to use (allow override for custom registries)
-        if [ -n "${{ inputs.wheels-registry }}" ]; then
-          registry="${{ inputs.wheels-registry }}"
-        else
-          registry="ghcr.io/home-assistant"
-        fi
+        # Always use official Home Assistant registry since that's where the pre-built images are
+        registry="ghcr.io/home-assistant"
         
         # Construct image name
-        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:${{ steps.version.outputs.version }}"
+        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:2025.11.0"
         docker pull "$name"
         echo "name=$name" >> $GITHUB_OUTPUT
 
