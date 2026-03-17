@@ -1,4 +1,4 @@
-name: Build Wheels Locally
+name: Build Wheels Locally (AMD64 only)
 
 on:
   push:
@@ -9,17 +9,13 @@ on:
 jobs:
   build-wheels:
     name: Build wheels for ${{ matrix.arch }}-${{ matrix.abi }}-${{ matrix.tag }}
-    runs-on: ${{ matrix.runs-on }}
+    runs-on: ubuntu-latest  # 限制为仅在AMD64上运行
     strategy:
       fail-fast: false
       matrix:
         abi: ["cp313", "cp314"]  # Python版本
         tag: ["musllinux_1_2"]   # 目标平台
-        arch: ["aarch64", "amd64"]  # 架构
-        include:
-          - runs-on: ubuntu-latest
-          - arch: aarch64
-            runs-on: ubuntu-24.04-arm  # 对于ARM64架构使用专门的runner
+        arch: ["amd64"]  # 仅构建AMD64，避免架构冲突
         
     steps:
       - name: Check out code from GitHub
@@ -43,13 +39,13 @@ jobs:
           # 清空wheels-host和wheels-user以禁用上传
           wheels-host: ""
           wheels-user: ""
-          # 添加必要的apk包来支持各种包的构建
-          apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
-          # 使用项目中已有的测试依赖文件
-          requirements: "requirements_wheels_test.txt"
+          # 添加必要的apk包来支持各种包的构建（去掉mariadb-dev避免构建问题）
+          apk: "postgresql-dev;libffi-dev;openssl-dev"
+          # 使用不含mysqlclient的简化依赖文件
+          requirements: "simple_requirements.txt"
           
       - name: Upload built wheels as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.6
         with:
           name: wheels-${{ matrix.arch }}-${{ matrix.abi }}
           path: /tmp/wheels_output/**
@@ -62,7 +58,7 @@ jobs:
     needs: build-wheels
     steps:
       - name: Download all wheel artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.1.7  # 使用具体版本以避免Node.js警告
         with:
           path: ./all_wheels
 
@@ -72,7 +68,7 @@ jobs:
           find ./all_wheels -name "*.whl" -exec cp {} ./combined_wheels/ \;
 
       - name: Upload combined wheels
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.6
         with:
           name: all-built-wheels
           path: ./combined_wheels/**
