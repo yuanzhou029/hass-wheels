@@ -39,6 +39,10 @@ jobs:
           # 清空wheels-host和wheels-user以禁用上传
           wheels-host: ""
           wheels-user: ""
+          # 添加必要的apk包来支持各种包的构建
+          apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
+          # 使用项目中已有的测试依赖文件
+          requirements: "requirements_wheels_test.txt"
           
       - name: Upload built wheels as artifacts
         uses: actions/upload-artifact@v4

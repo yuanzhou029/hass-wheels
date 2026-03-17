@@ -1,4 +1,4 @@
-name: Simple Wheels Build
+name: Minimal Wheels Build
 
 on:
   push:
@@ -6,13 +6,13 @@ on:
   workflow_dispatch:  # 允许手动触发
 
 jobs:
-  build-wheels-simple:
+  build-wheels-minimal:
     runs-on: ubuntu-latest
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v6.0.2
 
-      - name: Build wheels locally (test packages)
+      - name: Build wheels locally (excluding problematic packages)
         uses: ./
         with:
           abi: cp313
@@ -22,14 +22,14 @@ jobs:
           local-wheels-repo-path: "/tmp/output"
           wheels-host: ""
           wheels-user: ""
-          # 使用项目中已有的测试依赖文件  
-          requirements: "requirements_wheels_test.txt"
-          # 添加必要的apk包来支持mysqlclient等包的构建
-          apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
+          # 使用不含mysqlclient的简化依赖文件
+          requirements: "simple_requirements.txt"
+          # 仍然安装必要的开发库
+          apk: "postgresql-dev;libffi-dev;openssl-dev"
 
       - name: Upload wheels as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: built-wheels-simple
+          name: minimal-built-wheels
           path: /tmp/output/**
           retention-days: 30
