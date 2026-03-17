@@ -6,7 +6,7 @@ ARG \
     CPYTHON_ABI=cp314 \
     PIP_EXTRA_INDEX_URL=https://wheels.home-assistant.io/musllinux-index/
 
-SHELL ["/bin/bash", "-exo", "pipefail", "-c"]
+SHELL ["/bin/sh", "-exo", "-c"]
 
 # Install build dependencies
 RUN apk upgrade --no-cache && \
