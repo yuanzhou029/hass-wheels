@@ -28,7 +28,7 @@ jobs:
           apk: "mariadb-dev;postgresql-dev;libffi-dev;openssl-dev"
 
       - name: Upload wheels as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.6  # 使用具体版本以避免Node.js警告
         with:
           name: built-wheels-simple
           path: /tmp/output/**
