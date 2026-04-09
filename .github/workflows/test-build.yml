@@ -15,7 +15,7 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
       
-      # 添加这一步：列出当前目录文件，确认 requirements-test.txt 存在
+      # 添加这一步：列出当前目录文件，确认 requirements_test.txt 存在
       - name: 检查文件
         run: |
           pwd
@@ -41,14 +41,13 @@ jobs:
           wheels-host: ""
           wheels-user: ""
           
-          # 要构建的包列表 - 使用相对路径指向我们创建的文件
+          # 要构建的包列表 - 使用正确的文件名
           requirements: "requirements_test.txt"
           
           # 构建所需的系统包
           apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers;zlib-dev"
       
       # 第四步：检查输出目录
-      - name: 检查输出目录
         run: |
           ls -la /tmp/ || echo "Tmp directory listing failed"
           ls -la /tmp/test-wheels/ || echo "Output directory is empty"
