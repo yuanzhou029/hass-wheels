@@ -15,9 +15,14 @@ jobs:
       - name: 检出代码
         uses: actions/checkout@v4
       
-      # 第二步：使用 hass-wheels 构建
+      # 第二步：获取 Home Assistant 官方依赖作为对比
+      - name: 获取官方依赖列表
+        run: |
+          curl -o ha-requirements.txt https://raw.githubusercontent.com/home-assistant/core/dev/requirements.txt
+      
+      # 第三步：使用 hass-wheels 构建
       - name: 使用 Hass-Wheels 构建包
-        uses: yuanzhou029/hass-wheels@main  # 指向你的仓库
+        uses: yuanzhou029/hass-wheels@main
         with:
           # 配置构建参数
           abi: cp314              # Python 3.14 版本
@@ -29,15 +34,23 @@ jobs:
           wheels-host: ""
           wheels-user: ""
           
-          # 要构建的包列表
+          # 要构建的包列表 - 使用更简单的包进行测试
           requirements: "requirements-test.txt"
           
           # 构建所需的系统包
-          apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers"
+          apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers;zlib-dev"
       
-      # 第三步：保存构建结果
+      # 第四步：检查输出目录
+      - name: 检查输出目录
+        run: |
+          ls -la /tmp/test-wheels/ || echo "Output directory is empty"
+          find /tmp/test-wheels -name "*.whl" || echo "No wheel files found"
+      
+      # 第五步：保存构建结果（只有目录存在时才执行）
       - name: 上传构建结果
+        if: always()  # 即使前面步骤失败也会运行
         uses: actions/upload-artifact@v4
         with:
-          name: 测试构建结果
+          name: 构建结果
           path: /tmp/test-wheels/**
+          if-no-files-found: ignore  # 如果没有文件也忽略错误
