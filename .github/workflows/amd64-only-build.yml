@@ -46,7 +46,7 @@ jobs:
           apk: "postgresql-dev;libffi-dev;openssl-dev"
           
       - name: Upload built wheels as artifacts
-        uses: actions/upload-artifact@v4.3.6  # 使用具体版本以避免Node.js警告
+        uses: actions/upload-artifact@v7  # 使用具体版本以避免Node.js警告
         with:
           name: wheels-${{ matrix.arch }}-${{ matrix.abi }}
           path: /tmp/wheels_output/**
@@ -69,7 +69,7 @@ jobs:
           find ./all_wheels -name "*.whl" -exec cp {} ./combined_wheels/ \;
 
       - name: Upload combined wheels
-        uses: actions/upload-artifact@v4.3.6  # 使用具体版本以避免Node.js警告
+        uses: actions/upload-artifact@v7  # 使用具体版本以避免Node.js警告
         with:
           name: all-built-wheels
           path: ./combined_wheels/**

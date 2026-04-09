@@ -58,7 +58,7 @@ jobs:
       # 第五步：保存构建结果（只有目录存在时才执行）
       - name: 上传构建结果
         if: always()  # 即使前面步骤失败也会运行
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: 构建结果
           path: /tmp/test-wheels/**
