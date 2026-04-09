@@ -1,0 +1,43 @@
+name: 测试 Hass-Wheels 构建
+on:
+  workflow_dispatch:  # 这样我们可以手动触发构建
+    inputs:
+      target_package:
+        description: "要构建的包名"
+        required: true
+        default: "requests"
+jobs:
+  build-wheels-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      # 第一步：检出代码
+      - name: 检出代码
+        uses: actions/checkout@v4
+      
+      # 第二步：使用 hass-wheels 构建
+      - name: 使用 Hass-Wheels 构建包
+        uses: yuanzhou029/hass-wheels@main  # 指向你的仓库
+        with:
+          # 配置构建参数
+          abi: cp314              # Python 3.14 版本
+          tag: musllinux_1_2      # Alpine Linux 系统标识
+          arch: amd64             # 架构类型
+          
+          # 本地输出设置（不上传到远程服务器）
+          local-wheels-repo-path: "/tmp/test-wheels"
+          wheels-host: ""
+          wheels-user: ""
+          
+          # 要构建的包列表
+          requirements: "requirements-test.txt"
+          
+          # 构建所需的系统包
+          apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers"
+      
+      # 第三步：保存构建结果
+      - name: 上传构建结果
+        uses: actions/upload-artifact@v4
+        with:
+          name: 测试构建结果
+          path: /tmp/test-wheels/**
