@@ -48,6 +48,7 @@ jobs:
           apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers;zlib-dev"
       
       # 第四步：检查输出目录
+      - name: 检查输出目录
         run: |
           ls -la /tmp/ || echo "Tmp directory listing failed"
           ls -la /tmp/test-wheels/ || echo "Output directory is empty"
