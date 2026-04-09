@@ -13,7 +13,7 @@ jobs:
     steps:
       # 第一步：检出代码
       - name: 检出代码
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       # 添加这一步：列出当前目录文件，确认 requirements_test.txt 存在
       - name: 检查文件

@@ -20,7 +20,7 @@ jobs:
         
     steps:
       - name: Check out code from GitHub
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6
 
       - name: Write env-file (if needed for your builds)
         shell: bash
