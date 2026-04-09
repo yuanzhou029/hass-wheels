@@ -1,3 +1,4 @@
 requests==2.31.0
-Pillow==10.0.0
-beautifulsoup4==4.12.2
+simplejson==3.19.2
+typing-extensions==4.12.2
+urllib3==2.2.2
