@@ -20,7 +20,7 @@ jobs:
         run: |
           pwd
           ls -la
-          cat requirements-test.txt
+          cat requirements_test.txt
       
       # 第二步：获取 Home Assistant 官方依赖作为对比
       - name: 获取官方依赖列表
@@ -42,7 +42,7 @@ jobs:
           wheels-user: ""
           
           # 要构建的包列表 - 使用相对路径指向我们创建的文件
-          requirements: "requirements-test.txt"
+          requirements: "requirements_test.txt"
           
           # 构建所需的系统包
           apk: "libffi-dev;openssl-dev;gcc;g++;linux-headers;zlib-dev"
