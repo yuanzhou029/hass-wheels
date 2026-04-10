@@ -45,7 +45,7 @@ jobs:
           requirements: "simple_requirements.txt"
           
       - name: Upload built wheels as artifacts
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v7
         with:
           name: wheels-${{ matrix.arch }}-${{ matrix.abi }}
           path: /tmp/wheels_output/**
@@ -68,7 +68,7 @@ jobs:
           find ./all_wheels -name "*.whl" -exec cp {} ./combined_wheels/ \;
 
       - name: Upload combined wheels
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v7
         with:
           name: all-built-wheels
           path: ./combined_wheels/**
