@@ -79,11 +79,11 @@ runs:
         input="${GITHUB_ACTION_PATH##*/}"
         if [[ "${input}" == "master" ]] || [[ -z "${input}" ]]; then
           # Use a fixed known version instead of "dev"
-          input="2025.11.0"
+          input="dev"
         fi
         # Override version to a known good version when using custom registry
         if [ -n "${{ inputs.wheels-registry }}" ]; then
-          echo "version=2025.11.0" >> $GITHUB_OUTPUT  # Known HA wheels version
+          echo "version=dev" >> $GITHUB_OUTPUT  # Known HA wheels version
         else
           echo "version=${input}" >> $GITHUB_OUTPUT
         fi
@@ -109,7 +109,7 @@ runs:
         registry="ghcr.io/yuanzhou029"
         
         # Construct image name
-        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:2025.11.0"
+        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:dev"
         docker pull "$name"
         echo "name=$name" >> $GITHUB_OUTPUT
 
