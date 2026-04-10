@@ -65,7 +65,7 @@ inputs:
     description: "Path to a local folder to copy the repository to (wheels-host and wheels-user must be empty)"
     default: ""
   wheels-registry:
-    description: "Custom registry for wheels images (defaults to ghcr.io/home-assistant)"
+    description: "Custom registry for wheels images (defaults to ghcr.io/yuanzhou029)"
     default: ""
 
 runs:
@@ -106,7 +106,7 @@ runs:
       id: pull
       run: |
         # Always use official Home Assistant registry since that's where the pre-built images are
-        registry="ghcr.io/home-assistant"
+        registry="ghcr.io/yuanzhou029"
         
         # Construct image name
         name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:2025.11.0"
