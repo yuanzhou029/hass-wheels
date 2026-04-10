@@ -65,7 +65,7 @@ inputs:
     description: "Path to a local folder to copy the repository to (wheels-host and wheels-user must be empty)"
     default: ""
   wheels-registry:
-    description: "Custom registry for wheels images (defaults to ghcr.io/yuanzhou029)"
+    description: "Custom registry for wheels images (defaults to ghcr.io/home-assistant)"
     default: ""
 
 runs:
@@ -78,12 +78,12 @@ runs:
         # Or check if custom registry is used to adjust accordingly
         input="${GITHUB_ACTION_PATH##*/}"
         if [[ "${input}" == "master" ]] || [[ -z "${input}" ]]; then
-          # Use a fixed known version instead of "dev"
-          input="dev"
+          # Use a fixed known version instead of "2025.11.0"
+          input="2025.11.0"
         fi
         # Override version to a known good version when using custom registry
         if [ -n "${{ inputs.wheels-registry }}" ]; then
-          echo "version=dev" >> $GITHUB_OUTPUT  # Known HA wheels version
+          echo "version=2025.11.0" >> $GITHUB_OUTPUT  # Known HA wheels version
         else
           echo "version=${input}" >> $GITHUB_OUTPUT
         fi
@@ -106,10 +106,10 @@ runs:
       id: pull
       run: |
         # Always use official Home Assistant registry since that's where the pre-built images are
-        registry="ghcr.io/yuanzhou029"
+        registry="ghcr.io/home-assistant"
         
         # Construct image name
-        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:dev"
+        name="$registry/wheels/${{ inputs.arch }}/${{ inputs.tag }}/${{ inputs.abi }}:2025.11.0"
         docker pull "$name"
         echo "name=$name" >> $GITHUB_OUTPUT
 
